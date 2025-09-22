@@ -136,7 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function addPokemon(region,rIndex){ 
     const nextNo=getNextPokedexNo(rIndex); 
-    editPokemon(region,rIndex,{name:'',pokedexNo:nextNo,title:'',types:[],evolvesTo:0,evolveLevel:0,hp:0,attack:0,defence:0,spAtk:0,spDef:0,speed:0,moves:[]},null,true); 
+    editPokemon(region,rIndex,{
+      name:'', pokedexNo:nextNo, title:'', types:[],
+      evolvesTo:0, evolveLevel:0, hp:0, attack:0, defence:0, spAtk:0, spDef:0, speed:0
+    },null,true); 
   }
 
   function editPokemon(region,rIndex,poke,pIndex=null,isNew=false){
@@ -152,12 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <label>Evolve Level:</label><input type="number" id="pokeEvolveLevel" min="1" value="${poke.evolveLevel}">
     <h4>Stats</h4>
     ${['hp','attack','defence','spAtk','spDef','speed'].map(stat=>`<label>${stat}:</label><input type="number" id="${stat}" value="${poke[stat]}">`).join('')}
-    <h4>Moves (comma separated)</h4>
-    <label>Names:</label><input type="text" id="movesName" value="${poke.moves.map(m=>m.name).join(', ')}">
-    <label>Types:</label><input type="text" id="movesType" value="${poke.moves.map(m=>m.types[0]).join(', ')}">
-    <label>Category:</label><input type="text" id="movesCat" value="${poke.moves.map(m=>m.cat).join(', ')}">
-    <label>Power:</label><input type="text" id="movesPower" value="${poke.moves.map(m=>m.power===null?'':m.power).join(', ')}">
-    <label>Accuracy:</label><input type="text" id="movesAcc" value="${poke.moves.map(m=>m.acc).join(', ')}">
     <button id="savePoke">Save</button>
     <button id="deletePoke" style="background:#800;">Delete Pokémon</button>
     <button id="cancel">Cancel</button>`;
@@ -182,22 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
       poke.evolveLevel=Number(content.querySelector('#pokeEvolveLevel').value)||0;
       ['hp','attack','defence','spAtk','spDef','speed'].forEach(stat=>{poke[stat]=Number(content.querySelector(`#${stat}`).value)||0;});
       
-      const names=content.querySelector('#movesName').value.split(',').map(s=>s.trim());
-      const typesM=content.querySelector('#movesType').value.split(',').map(s=>s.trim());
-      const cats=content.querySelector('#movesCat').value.split(',').map(s=>s.trim());
-      const powers=content.querySelector('#movesPower').value.split(',').map(s=>s.trim());
-      const accs=content.querySelector('#movesAcc').value.split(',').map(s=>s.trim());
-      poke.moves=[];
-      for(let i=0;i<names.length;i++){
-        if(!names[i]) continue; 
-        poke.moves.push({
-          name:names[i],
-          types:[typesM[i]||'Normal'],
-          cat:cats[i]||'Physical',
-          power:powers[i]===''?null:Number(powers[i]),
-          acc:Number(accs[i])||100
-        });
-      }
       if(isNew){incrementFollowingNumbers(rIndex,poke.pokedexNo); region.pokemon.push(poke);}
       save(); closeModal();
     };
