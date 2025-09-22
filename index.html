@@ -12,8 +12,14 @@
     padding: 20px;
   }
   h1 { text-align: center; color: #ffd700; }
-  .tree ul { list-style-type: none; padding-left: 20px; }
-  .tree li { margin: 5px 0; cursor: pointer; }
+  .tree ul {
+    list-style-type: none;
+    padding-left: 20px;
+  }
+  .tree li {
+    margin: 5px 0;
+    cursor: pointer;
+  }
   .tree button {
     margin-left: 5px;
     background: #333;
@@ -65,19 +71,14 @@
     cursor: pointer;
   }
   .modal-content button:hover { background: #444; }
-  #topButtons { margin-bottom: 15px; }
 </style>
 </head>
 <body>
 
 <h1>Pokédex Maker</h1>
-<div id="topButtons">
+<div>
   <button id="addRegionBtn">Add Region</button>
-  <button id="saveJsonBtn">Save as JSON</button>
-  <button id="loadJsonBtn">Load JSON</button>
-  <input type="file" id="jsonFileInput" class="hidden" accept=".json">
 </div>
-
 <div class="tree" id="pokedexTree"></div>
 
 <!-- Modal -->
@@ -86,8 +87,10 @@
 </div>
 
 <script>
+// Allowed types
 const allowedTypes = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
 
+// Load or initialize Pokédex
 let pokedex = JSON.parse(localStorage.getItem('pokedex')) || {regions: []};
 const tree = document.getElementById('pokedexTree');
 const modal = document.getElementById('modal');
@@ -221,6 +224,7 @@ function addPokemon(region, rIndex) {
       speed: Number(content.querySelector('#speed').value)||0,
       moves: []
     };
+    // Parse moves
     const names = content.querySelector('#movesName').value.split(',').map(s=>s.trim());
     const types = content.querySelector('#movesType').value.split(',').map(s=>s.trim());
     const cats = content.querySelector('#movesCat').value.split(',').map(s=>s.trim());
@@ -238,21 +242,23 @@ function addPokemon(region, rIndex) {
       });
     }
 
+    // Update pokedexNo of following Pokémon
     incrementFollowingNumbers(rIndex, nextNo);
+
     region.pokemon.push(poke);
     save();
     closeModal();
   };
 }
 
-// Next Pokedex number in region
+// Get next available Pokédex number in this region
 function getNextPokedexNo(regionIndex){
   const region = pokedex.regions[regionIndex];
   if(region.pokemon.length === 0) return 1;
   return region.pokemon[region.pokemon.length-1].pokedexNo +1;
 }
 
-// Increment following Pokémon numbers
+// Increment pokedexNo of all Pokémon after inserted number
 function incrementFollowingNumbers(regionIndex, startNo){
   for(let r=regionIndex;r<pokedex.regions.length;r++){
     pokedex.regions[r].pokemon.forEach(p=>{
@@ -261,43 +267,7 @@ function incrementFollowingNumbers(regionIndex, startNo){
   }
 }
 
-// Modal click to close
 modal.onclick = (e) => { if(e.target===modal) closeModal(); }
-
-// Save as JSON
-document.getElementById('saveJsonBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify(pokedex, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pokedex.json';
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-// Load JSON
-document.getElementById('loadJsonBtn').onclick = () => {
-  document.getElementById('jsonFileInput').click();
-};
-
-document.getElementById('jsonFileInput').addEventListener('change', function(){
-  const file = this.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try{
-      const json = JSON.parse(e.target.result);
-      if(json.regions) {
-        pokedex = json;
-        save();
-        alert('Pokédex loaded successfully!');
-      } else { alert('Invalid JSON'); }
-    } catch(err){
-      alert('Error parsing JSON');
-    }
-  };
-  reader.readAsText(file);
-});
 
 renderTree();
 </script>
