@@ -61,7 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const delBtn = document.createElement('button');
       delBtn.textContent = 'Delete Region';
-      delBtn.style.background='#800'; delBtn.onclick=()=>{ if(confirm(`Delete region "${region.name}"?`)){pokedex.regions.splice(rIndex,1); save();}};
+      delBtn.style.background='#800'; 
+      delBtn.onclick = () => { 
+        if(confirm(`Delete region "${region.name}"?`)) {
+          pokedex.regions.splice(rIndex,1); 
+          save();
+        }
+      };
       regionList.appendChild(delBtn);
     });
   }
@@ -82,7 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const delBtn = document.createElement('button');
       delBtn.textContent = 'Delete Pokémon';
       delBtn.style.background='#800';
-      delBtn.onclick = () => { if(confirm(`Delete Pokémon "${p.name}"?`)){ region.pokemon.splice(pIndex,1); save(); }};
+      delBtn.onclick = () => { 
+        if(confirm(`Delete Pokémon "${p.name}"?`)) { 
+          region.pokemon.splice(pIndex,1); 
+          save(); 
+        } 
+      };
       pokemonList.appendChild(delBtn);
     });
   }
@@ -113,10 +124,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if(confirm('Delete all regions?')) { pokedex.regions=[]; save(); }
   }
 
-  function getNextPokedexNo(regionIndex){ const region=pokedex.regions[regionIndex]; return region.pokemon.length?region.pokemon[region.pokemon.length-1].pokedexNo+1:1; }
-  function incrementFollowingNumbers(regionIndex,startNo){ for(let r=regionIndex;r<pokedex.regions.length;r++){pokedex.regions[r].pokemon.forEach(p=>{if(p.pokedexNo>=startNo)p.pokedexNo++;});}}
+  function getNextPokedexNo(regionIndex){ 
+    const region=pokedex.regions[regionIndex]; 
+    return region.pokemon.length ? region.pokemon[region.pokemon.length-1].pokedexNo + 1 : 1; 
+  }
+  function incrementFollowingNumbers(regionIndex,startNo){ 
+    for(let r=regionIndex;r<pokedex.regions.length;r++){
+      pokedex.regions[r].pokemon.forEach(p=>{if(p.pokedexNo>=startNo)p.pokedexNo++;});
+    }
+  }
 
-  function addPokemon(region,rIndex){ const nextNo=getNextPokedexNo(rIndex); editPokemon(region,rIndex,{name:'',pokedexNo:nextNo,title:'',types:[],evolvesTo:0,evolveLevel:0,hp:0,attack:0,defence:0,spAtk:0,spDef:0,speed:0,moves:[]},null,true); }
+  function addPokemon(region,rIndex){ 
+    const nextNo=getNextPokedexNo(rIndex); 
+    editPokemon(region,rIndex,{name:'',pokedexNo:nextNo,title:'',types:[],evolvesTo:0,evolveLevel:0,hp:0,attack:0,defence:0,spAtk:0,spDef:0,speed:0,moves:[]},null,true); 
+  }
 
   function editPokemon(region,rIndex,poke,pIndex=null,isNew=false){
     const content=document.createElement('div');
@@ -126,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <label>Types:</label>
     <select id="pokeType1">${allowedTypes.map(t=>`<option ${poke.types[0]===t?'selected':''}>${t}</option>`).join('')}</select>
     <select id="pokeType2"><option value="">None</option>${allowedTypes.map(t=>`<option ${poke.types[1]===t?'selected':''}>${t}</option>`).join('')}</select>
-    <label>Evolves To (#):</label><input type="number" id="pokeEvolvesTo" min="0" value="${poke.evolvesTo}">
+    <label>Evolves To (#):</label>
+    <input type="text" id="pokeEvolvesTo" value="${poke.evolvesTo===0?'None':poke.evolvesTo}">
     <label>Evolve Level:</label><input type="number" id="pokeEvolveLevel" min="1" value="${poke.evolveLevel}">
     <h4>Stats</h4>
     ${['hp','attack','defence','spAtk','spDef','speed'].map(stat=>`<label>${stat}:</label><input type="number" id="${stat}" value="${poke[stat]}">`).join('')}
@@ -139,31 +161,71 @@ document.addEventListener('DOMContentLoaded', () => {
     <button id="savePoke">Save</button>
     <button id="deletePoke" style="background:#800;">Delete Pokémon</button>
     <button id="cancel">Cancel</button>`;
+    
     showModal(content);
     content.querySelector('#cancel').onclick=closeModal;
-    content.querySelector('#deletePoke').onclick=()=>{ if(confirm(`Delete Pokémon "${poke.name}"?`)){ region.pokemon.splice(pIndex,1); save(); closeModal(); }};
+    content.querySelector('#deletePoke').onclick=()=>{ 
+      if(confirm(`Delete Pokémon "${poke.name}"?`)){ 
+        if(pIndex!==null) region.pokemon.splice(pIndex,1); 
+        save(); 
+        closeModal(); 
+      } 
+    };
     content.querySelector('#savePoke').onclick=()=>{
       poke.name=content.querySelector('#pokeName').value.trim();
       poke.title=content.querySelector('#pokeTitle').value.trim();
       poke.types=[content.querySelector('#pokeType1').value, content.querySelector('#pokeType2').value].filter(Boolean);
-      poke.evolvesTo=Number(content.querySelector('#pokeEvolvesTo').value)||0;
+
+      const evolvesVal = content.querySelector('#pokeEvolvesTo').value.trim();
+      poke.evolvesTo = (evolvesVal.toLowerCase()==='none' || evolvesVal==='') ? 0 : Number(evolvesVal);
+
       poke.evolveLevel=Number(content.querySelector('#pokeEvolveLevel').value)||0;
       ['hp','attack','defence','spAtk','spDef','speed'].forEach(stat=>{poke[stat]=Number(content.querySelector(`#${stat}`).value)||0;});
+      
       const names=content.querySelector('#movesName').value.split(',').map(s=>s.trim());
       const typesM=content.querySelector('#movesType').value.split(',').map(s=>s.trim());
       const cats=content.querySelector('#movesCat').value.split(',').map(s=>s.trim());
       const powers=content.querySelector('#movesPower').value.split(',').map(s=>s.trim());
       const accs=content.querySelector('#movesAcc').value.split(',').map(s=>s.trim());
       poke.moves=[];
-      for(let i=0;i<names.length;i++){if(!names[i])continue; poke.moves.push({name:names[i],types:[typesM[i]||'Normal'],cat:cats[i]||'Physical',power:powers[i]===''?null:Number(powers[i]),acc:Number(accs[i])||100});}
+      for(let i=0;i<names.length;i++){
+        if(!names[i]) continue; 
+        poke.moves.push({
+          name:names[i],
+          types:[typesM[i]||'Normal'],
+          cat:cats[i]||'Physical',
+          power:powers[i]===''?null:Number(powers[i]),
+          acc:Number(accs[i])||100
+        });
+      }
       if(isNew){incrementFollowingNumbers(rIndex,poke.pokedexNo); region.pokemon.push(poke);}
       save(); closeModal();
     };
   }
 
-  document.getElementById('saveJsonBtn').onclick=()=>{const blob=new Blob([JSON.stringify(pokedex,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='pokedex.json'; a.click(); URL.revokeObjectURL(url);}
+  document.getElementById('saveJsonBtn').onclick=()=>{
+    const blob=new Blob([JSON.stringify(pokedex,null,2)],{type:"application/json"}); 
+    const url=URL.createObjectURL(blob); 
+    const a=document.createElement('a'); 
+    a.href=url; 
+    a.download='pokedex.json'; 
+    a.click(); 
+    URL.revokeObjectURL(url);
+  }
   document.getElementById('loadJsonBtn').onclick=()=>document.getElementById('jsonFileInput').click();
-  document.getElementById('jsonFileInput').addEventListener('change',function(){const file=this.files[0];if(!file)return; const reader=new FileReader(); reader.onload=e=>{try{const json=JSON.parse(e.target.result);if(json.regions){pokedex=json; save(); alert('Pokédex loaded!');} else alert('Invalid JSON');}catch{alert('Error parsing JSON');}}; reader.readAsText(file);});
+  document.getElementById('jsonFileInput').addEventListener('change',function(){
+    const file=this.files[0];
+    if(!file) return; 
+    const reader=new FileReader(); 
+    reader.onload=e=>{
+      try{
+        const json=JSON.parse(e.target.result);
+        if(json.regions){pokedex=json; save(); alert('Pokédex loaded!');} 
+        else alert('Invalid JSON');
+      }catch{alert('Error parsing JSON');}
+    }; 
+    reader.readAsText(file);
+  });
 
   renderRegions();
 });
