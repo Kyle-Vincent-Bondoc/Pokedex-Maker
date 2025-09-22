@@ -22,6 +22,7 @@
 <h1>Pokédex Maker</h1>
 <div id="topButtons">
   <button id="addRegionBtn">Add Region</button>
+  <button id="deleteAllBtn">Delete All Regions</button>
   <button id="saveJsonBtn">Save as JSON</button>
   <button id="loadJsonBtn">Load JSON</button>
   <input type="file" id="jsonFileInput" class="hidden" accept=".json">
@@ -57,6 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.textContent = region.name;
       btn.onclick = () => renderPokemon(region, rIndex);
       regionList.appendChild(btn);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete Region';
+      delBtn.style.background='#800'; delBtn.onclick=()=>{ if(confirm(`Delete region "${region.name}"?`)){pokedex.regions.splice(rIndex,1); save();}};
+      regionList.appendChild(delBtn);
     });
   }
 
@@ -72,6 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.textContent = `#${p.pokedexNo} ${p.name}`;
       btn.onclick = () => editPokemon(region, rIndex, p, pIndex);
       pokemonList.appendChild(btn);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete Pokémon';
+      delBtn.style.background='#800';
+      delBtn.onclick = () => { if(confirm(`Delete Pokémon "${p.name}"?`)){ region.pokemon.splice(pIndex,1); save(); }};
+      pokemonList.appendChild(delBtn);
     });
   }
 
@@ -97,6 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   };
 
+  document.getElementById('deleteAllBtn').onclick = () => {
+    if(confirm('Delete all regions?')) { pokedex.regions=[]; save(); }
+  }
+
   function getNextPokedexNo(regionIndex){ const region=pokedex.regions[regionIndex]; return region.pokemon.length?region.pokemon[region.pokemon.length-1].pokedexNo+1:1; }
   function incrementFollowingNumbers(regionIndex,startNo){ for(let r=regionIndex;r<pokedex.regions.length;r++){pokedex.regions[r].pokemon.forEach(p=>{if(p.pokedexNo>=startNo)p.pokedexNo++;});}}
 
@@ -120,9 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
     <label>Category:</label><input type="text" id="movesCat" value="${poke.moves.map(m=>m.cat).join(', ')}">
     <label>Power:</label><input type="text" id="movesPower" value="${poke.moves.map(m=>m.power===null?'':m.power).join(', ')}">
     <label>Accuracy:</label><input type="text" id="movesAcc" value="${poke.moves.map(m=>m.acc).join(', ')}">
-    <button id="savePoke">Save</button><button id="cancel">Cancel</button>`;
+    <button id="savePoke">Save</button>
+    <button id="deletePoke" style="background:#800;">Delete Pokémon</button>
+    <button id="cancel">Cancel</button>`;
     showModal(content);
     content.querySelector('#cancel').onclick=closeModal;
+    content.querySelector('#deletePoke').onclick=()=>{ if(confirm(`Delete Pokémon "${poke.name}"?`)){ region.pokemon.splice(pIndex,1); save(); closeModal(); }};
     content.querySelector('#savePoke').onclick=()=>{
       poke.name=content.querySelector('#pokeName').value.trim();
       poke.title=content.querySelector('#pokeTitle').value.trim();
