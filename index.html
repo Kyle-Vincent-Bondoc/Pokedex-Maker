@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pokédex Maker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #1e1e1e;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { text-align: center; color: #ffd700; }
+  .tree ul { list-style-type: none; padding-left: 20px; }
+  .tree li { margin: 5px 0; cursor: pointer; }
+  .tree button {
+    margin-left: 5px;
+    background: #333;
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 2px 5px;
+    cursor: pointer;
+  }
+  .tree button:hover { background: #444; }
+  .hidden { display: none; }
+  .modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: #2b2b2b;
+    color: #eee;
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 8px;
+    width: 400px;
+  }
+  .modal-content input, 
+  .modal-content select, 
+  .modal-content textarea {
+    width: 100%;
+    margin: 5px 0 15px 0;
+    padding: 5px;
+    background: #1e1e1e;
+    border: 1px solid #555;
+    color: #eee;
+    border-radius: 4px;
+  }
+  .modal-content label { font-weight: bold; }
+  .modal-content button { 
+    margin-right: 10px; 
+    background: #333;
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .modal-content button:hover { background: #444; }
+  #topButtons { margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<h1>Pokédex Maker</h1>
+<div id="topButtons">
+  <button id="addRegionBtn">Add Region</button>
+  <button id="saveJsonBtn">Save as JSON</button>
+  <button id="loadJsonBtn">Load JSON</button>
+  <input type="file" id="jsonFileInput" class="hidden" accept=".json">
+</div>
+
+<div class="tree" id="pokedexTree"></div>
+
+<!-- Modal -->
+<div class="modal hidden" id="modal">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+const allowedTypes = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
+
+let pokedex = JSON.parse(localStorage.getItem('pokedex')) || {regions: []};
+const tree = document.getElementById('pokedexTree');
+const modal = document.getElementById('modal');
+const modalContent = document.getElementById('modalContent');
+
+function save() {
+  localStorage.setItem('pokedex', JSON.stringify(pokedex, null, 2));
+  renderTree();
+}
+
+function renderTree() {
+  tree.innerHTML = '';
+  pokedex.regions.forEach((region, rIndex) => {
+    const li = document.createElement('li');
+    li.textContent = region.name;
+    
+    const enterBtn = document.createElement('button');
+    enterBtn.textContent = 'Enter';
+    enterBtn.onclick = () => openRegion(region, rIndex);
+    li.appendChild(enterBtn);
+    tree.appendChild(li);
+    
+    const ul = document.createElement('ul');
+    if(region.pokemon) {
+      region.pokemon.forEach(p => {
+        const pli = document.createElement('li');
+        pli.textContent = `#${p.pokedexNo} ${p.name} (${p.types.join(', ')})`;
+        ul.appendChild(pli);
+      });
+    }
+    li.appendChild(ul);
+  });
+}
+
+function showModal(content) {
+  modalContent.innerHTML = '';
+  modalContent.appendChild(content);
+  modal.classList.remove('hidden');
+}
+
+function closeModal() { modal.classList.add('hidden'); }
+
+// Add Region
+document.getElementById('addRegionBtn').onclick = () => {
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <h3>Add Region</h3>
+    <label>Name:</label><input type="text" id="regionName">
+    <label>Description:</label><textarea id="regionDesc"></textarea>
+    <button id="saveRegion">Save</button>
+    <button id="cancel">Cancel</button>
+  `;
+  showModal(content);
+  content.querySelector('#cancel').onclick = closeModal;
+  content.querySelector('#saveRegion').onclick = () => {
+    const name = content.querySelector('#regionName').value.trim();
+    const desc = content.querySelector('#regionDesc').value.trim();
+    if(!name) return alert('Name required');
+    pokedex.regions.push({name, desc, pokemon: []});
+    save();
+    closeModal();
+  };
+};
+
+// Open Region
+function openRegion(region, rIndex) {
+  const content = document.createElement('div');
+  content.innerHTML = `<h3>${region.name} Pokémon</h3>`;
+  const addBtn = document.createElement('button');
+  addBtn.textContent = 'Add Pokémon';
+  addBtn.onclick = () => addPokemon(region, rIndex);
+  content.appendChild(addBtn);
+
+  const ul = document.createElement('ul');
+  region.pokemon.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `#${p.pokedexNo} ${p.name} (${p.types.join(', ')})`;
+    ul.appendChild(li);
+  });
+  content.appendChild(ul);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = closeModal;
+  content.appendChild(closeBtn);
+
+  showModal(content);
+}
+
+// Add Pokémon
+function addPokemon(region, rIndex) {
+  const nextNo = getNextPokedexNo(rIndex);
+  const content = document.createElement('div');
+  content.innerHTML = `<h3>Add Pokémon (#${nextNo})</h3>
+    <label>Name:</label><input type="text" id="pokeName">
+    <label>Title:</label><input type="text" id="pokeTitle">
+    <label>Types (choose one or two):</label>
+    <select id="pokeType1">${allowedTypes.map(t=>`<option>${t}</option>`).join('')}</select>
+    <select id="pokeType2"><option value="">None</option>${allowedTypes.map(t=>`<option>${t}</option>`).join('')}</select>
+    <label>Evolves To (#, leave 0 if none):</label><input type="number" id="pokeEvolvesTo" min="0">
+    <label>Evolve Level:</label><input type="number" id="pokeEvolveLevel" min="1">
+    <h4>Stats</h4>
+    ${['hp','attack','defence','spAtk','spDef','speed'].map(stat=>`<label>${stat}:</label><input type="number" id="${stat}" min="0">`).join('')}
+    <h4>Moves (comma separated)</h4>
+    <label>Names:</label><input type="text" id="movesName" placeholder="Growl, Tackle">
+    <label>Types (same order, comma separated):</label><input type="text" id="movesType" placeholder="Normal, Normal">
+    <label>Category (same order, comma separated):</label><input type="text" id="movesCat" placeholder="Status, Physical">
+    <label>Power (same order, comma separated, leave blank for null):</label><input type="text" id="movesPower" placeholder="null, 40">
+    <label>Accuracy (same order, comma separated):</label><input type="text" id="movesAcc" placeholder="100, 95">
+    <button id="savePoke">Save</button>
+    <button id="cancel">Cancel</button>
+  `;
+  showModal(content);
+  content.querySelector('#cancel').onclick = closeModal;
+
+  content.querySelector('#savePoke').onclick = () => {
+    const name = content.querySelector('#pokeName').value.trim();
+    if(!name) return alert('Name required');
+    const poke = {
+      name,
+      pokedexNo: nextNo,
+      title: content.querySelector('#pokeTitle').value.trim(),
+      types: [content.querySelector('#pokeType1').value, content.querySelector('#pokeType2').value].filter(Boolean),
+      evolvesTo: Number(content.querySelector('#pokeEvolvesTo').value) || 0,
+      evolveLevel: Number(content.querySelector('#pokeEvolveLevel').value) || 0,
+      hp: Number(content.querySelector('#hp').value)||0,
+      attack: Number(content.querySelector('#attack').value)||0,
+      defence: Number(content.querySelector('#defence').value)||0,
+      spAtk: Number(content.querySelector('#spAtk').value)||0,
+      spDef: Number(content.querySelector('#spDef').value)||0,
+      speed: Number(content.querySelector('#speed').value)||0,
+      moves: []
+    };
+    const names = content.querySelector('#movesName').value.split(',').map(s=>s.trim());
+    const types = content.querySelector('#movesType').value.split(',').map(s=>s.trim());
+    const cats = content.querySelector('#movesCat').value.split(',').map(s=>s.trim());
+    const powers = content.querySelector('#movesPower').value.split(',').map(s=>s.trim());
+    const accs = content.querySelector('#movesAcc').value.split(',').map(s=>s.trim());
+
+    for(let i=0;i<names.length;i++){
+      if(!names[i]) continue;
+      poke.moves.push({
+        name: names[i],
+        types: [types[i]] || ["Normal"],
+        cat: cats[i] || "Physical",
+        power: powers[i]===""?null:Number(powers[i]),
+        acc: Number(accs[i])||100
+      });
+    }
+
+    incrementFollowingNumbers(rIndex, nextNo);
+    region.pokemon.push(poke);
+    save();
+    closeModal();
+  };
+}
+
+// Next Pokedex number in region
+function getNextPokedexNo(regionIndex){
+  const region = pokedex.regions[regionIndex];
+  if(region.pokemon.length === 0) return 1;
+  return region.pokemon[region.pokemon.length-1].pokedexNo +1;
+}
+
+// Increment following Pokémon numbers
+function incrementFollowingNumbers(regionIndex, startNo){
+  for(let r=regionIndex;r<pokedex.regions.length;r++){
+    pokedex.regions[r].pokemon.forEach(p=>{
+      if(p.pokedexNo>=startNo) p.pokedexNo++;
+    });
+  }
+}
+
+// Modal click to close
+modal.onclick = (e) => { if(e.target===modal) closeModal(); }
+
+// Save as JSON
+document.getElementById('saveJsonBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(pokedex, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pokedex.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Load JSON
+document.getElementById('loadJsonBtn').onclick = () => {
+  document.getElementById('jsonFileInput').click();
+};
+
+document.getElementById('jsonFileInput').addEventListener('change', function(){
+  const file = this.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const json = JSON.parse(e.target.result);
+      if(json.regions) {
+        pokedex = json;
+        save();
+        alert('Pokédex loaded successfully!');
+      } else { alert('Invalid JSON'); }
+    } catch(err){
+      alert('Error parsing JSON');
+    }
+  };
+  reader.readAsText(file);
+});
+
+renderTree();
+</script>
+
+</body>
+</html>
